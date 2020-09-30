@@ -44,6 +44,7 @@ import jdk.jfr.events.SocketReadEvent;
 import jdk.jfr.events.SocketWriteEvent;
 import jdk.jfr.events.UnixSocketReadEvent;
 import jdk.jfr.events.UnixSocketWriteEvent;
+import jdk.jfr.events.UsageLogEvent;
 import jdk.jfr.events.TLSHandshakeEvent;
 import jdk.jfr.events.X509CertificateEvent;
 import jdk.jfr.events.X509ValidationEvent;
@@ -59,6 +60,7 @@ public final class JDKEvents {
     private static final Class<?>[] mirrorEventClasses = {
         SecurityPropertyModificationEvent.class,
         TLSHandshakeEvent.class,
+        UsageLogEvent.class,
         X509CertificateEvent.class,
         X509ValidationEvent.class,
         ProcessStartEvent.class
@@ -79,6 +81,7 @@ public final class JDKEvents {
         ActiveRecordingEvent.class,
         jdk.internal.event.SecurityPropertyModificationEvent.class,
         jdk.internal.event.TLSHandshakeEvent.class,
+        jdk.internal.event.UsageLogEvent.class,
         jdk.internal.event.X509CertificateEvent.class,
         jdk.internal.event.X509ValidationEvent.class,
         jdk.internal.event.ProcessStartEvent.class,
@@ -116,6 +119,8 @@ public final class JDKEvents {
                 initializationTriggered = true;
                 RequestEngine.addTrustedJDKHook(ExceptionStatisticsEvent.class, emitExceptionStatistics);
                 RequestEngine.addTrustedJDKHook(DirectBufferStatisticsEvent.class, emitDirectBufferStatistics);
+
+                RequestEngine.addTrustedJDKHook(UsageLogEvent.class, jdk.internal.usagelogger.UsageLogger.emitUsageLogEvent);
             }
         } catch (Exception e) {
             Logger.log(LogTag.JFR_SYSTEM, LogLevel.WARN, "Could not initialize JDK events. " + e.getMessage());

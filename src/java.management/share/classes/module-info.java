@@ -69,6 +69,7 @@ module java.management {
 
     uses javax.management.remote.JMXConnectorProvider;
     uses javax.management.remote.JMXConnectorServerProvider;
+    uses jdk.internal.usagelogger.UsageLogger;
     uses sun.management.spi.PlatformMBeanProvider;
 
     provides javax.security.auth.spi.LoginModule with

@@ -224,6 +224,9 @@ module java.base {
         jdk.dynalink,
         jdk.internal.vm.ci,
         jdk.unsupported;
+    exports jdk.internal.usagelogger to
+	jdk.jfr,
+	java.management;
     exports jdk.internal.vm to
         jdk.internal.jvmstat,
         jdk.management.agent;

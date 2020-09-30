@@ -113,6 +113,10 @@ class RuntimeImpl implements RuntimeMXBean {
         return vmStartupTime;
     }
 
+    public String getJvmUuid() {
+	return jdk.internal.usagelogger.UsageLogger.getJvmUuid().toString();
+    }
+
     public boolean isBootClassPathSupported() {
         return false;
     }

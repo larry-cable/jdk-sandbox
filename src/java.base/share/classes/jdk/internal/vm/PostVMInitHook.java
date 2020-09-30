@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,17 +23,31 @@
  * questions.
  */
 
-/**
- * Defines the API for JDK Flight Recorder.
- *
- * @moduleGraph
- * @since 9
- */
-module jdk.jfr {
-    exports jdk.jfr;
-    exports jdk.jfr.consumer;
+package jdk.internal.vm;
 
-    exports jdk.jfr.internal.management to jdk.management.jfr;
+import jdk.internal.usagelogger.UsageLogger;
 
-    uses jdk.internal.usagelogger.UsageLogger;
+public class PostVMInitHook {
+
+    /*
+     * table of initialization hooks to be run "in order"
+     */
+    private static final Runnable initHooks[] = {
+	() -> UsageLogger.logUsage()
+    };
+
+    /*
+     * This method is called by the VM once its initialization is complete.
+     *
+     * This method is responsible for catching all errors, as the VM clears any
+     * pending exceptions on return. Future hook users should consider whether
+     * the VM needs to issue a warning or fatal error.
+     */
+    public static void run() {
+        for (Runnable r : initHooks) try {
+	    r.run();
+	} catch (Throwable t) {
+	    // ignore...
+	}
+    }
 }

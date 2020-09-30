@@ -320,6 +320,17 @@ public interface RuntimeMXBean extends PlatformManagedObject {
     public long getStartTime();
 
     /**
+     * Returns the computed (type 3 name-based) UUID as computed for the JVM instance
+     *
+     * @see java.util.UUID#nameUUIDFromBytes()
+     * @see java.util.UUID#toString()
+     *
+     * @return the computed (type 3 - name based) UUID for this JVM instance
+     */
+
+     public String getJvmUuid();
+
+    /**
      * Returns a map of names and values of all system properties.
      * This method calls {@link System#getProperties} to get all
      * system properties.  Properties whose name or value is not
