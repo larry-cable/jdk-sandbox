@@ -196,12 +196,14 @@ public final class UsageLogger {
     // the following are variable substitution variables that can be included in the log pathname and/or URL...
     
     private static final String JVM_PID_VAR                      = "${jvm.pid}";
-    //private static final String USER_HOME_VAR                   = "${user.home}";
+
+    private static final String USER_HOME_VAR                    = "${user.home}";
     private static final String USER_NAME_VAR                    = "${user.name}";
-    //private static final String USER_DIR_VAR                    = "${user.dir}";
+
+    //private static final String USER_DIR_VAR                   = "${user.dir}";
 
     private static final String DATE_VAR                        = "${date}";
-    private static final String TIME_VAR					    = "${time}";
+    private static final String TIME_VAR			= "${time}";
     
     private static final String JVM_UUID_VAR                    = "${jvm.uuid}";
     //private static final String JAVA_IO_TMPDIR_VAR            = "${java.io.tmpdir}";
@@ -286,7 +288,7 @@ public final class UsageLogger {
         
         USER_NAME,
         USER_DIR,
-        //USER_HOME,
+        USER_HOME,
 
         JAVA_ARGUMENTS   ((sp) -> new String[] { getPropertyPrivileged("sun.java.command") } ), // injected in JRE from libjli apparently!
         
@@ -590,14 +592,18 @@ public final class UsageLogger {
         if (path == null || path.isEmpty()) {
             return null;
         } else {
-        	// separate path from file...
+            // separate path from file...
         	
-        	final var idx = path.lastIndexOf(File.separator) + 1;
+            final var idx = path.lastIndexOf(File.separator) + 1;
         	
-        	var fileName = path.substring(idx); // extract file...
+            var fileName = path.substring(idx); // extract file...
         	
-        	path = path.substring(0, idx); // truncate path...
+            path = path.substring(0, idx); // truncate path...
         	
+	    if (path.startsWith(USER_HOME_VAR)) {
+		path.replace(USER_HOME_VAR, SystemProperties.USER_HOME.getValue());
+	    }
+
             final var p = Pattern.compile(VARIABLE_PATTERN);
                         
             path = p.matcher(path).replaceAll((mr) -> { 
