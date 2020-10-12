@@ -335,7 +335,7 @@ public final class UsageLogger {
         
         //JAVA_IO_TMPDIR,
         
-        //JDK_JFR_REPOSITORY,
+        JDK_JFR_REPOSITORY,
         
         //JDK_USAGELOGGER_CONFIG_FILE ((e) -> new String[] { usageLoggerPropertiesFile.getAbsolutePath() } ),
         
