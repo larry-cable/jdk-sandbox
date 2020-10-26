@@ -78,8 +78,8 @@ import jdk.internal.event.UsageLogEvent;
  * usagelogger.properties file in any of the pre-defined locations:
  * <ul>
  * <li>The path specified by the property jdk.usagelogger.config.file</li>
- * <li>The central file system location
- * </li>
+ * <li>The path specified by the environment variable JDK_USAGELOGGER_CONFIG_FILE,/li>
+ * <li>The central file system location:</li>
  * <li>${java.home}/conf/management/</li>
  * </ul>
  * <ul>
@@ -96,35 +96,6 @@ import jdk.internal.event.UsageLogEvent;
  * that certain errors could be sent to the log in future, e.g. preceded by a
  * hash character to mark them as comments.
  * <p>
- * 
- * TODO: fix list...
- * 
- * The format of the record:
- * <ul>
- * <li>jvm start time
- * <li>hostname
- * <li>ip address
- * <li>Java command line arguments
- * <li>java.home
- * <li>java.version
- * <li>jvm.version
- * <li>java.vendor
- * <li>jvm.vendor
- * <li>os.name
- * <li>os.version
- * <li>os.arch
- * <li>vm args
- * <li>java.class.path
- * <li>jdk.modulepath
- * <li>jdk.main.module
- * <li>jdk.module.main.class
- * <li>user.name
- * <li>user.dir
- * <li>user.home
- * <li>java.io.tmpdir
- * <li>jdk.jfr.repository
- * <li>additionalProperties
- * </ul>
  */
 public final class UsageLogger {
 	public static final Object        runtime; // RuntimeMXBean... if present, otherwise null...
@@ -142,8 +113,8 @@ public final class UsageLogger {
 
 				return (clazz != null) ? clazz.getMethod("getRuntimeMXBean", (Class<?>[])null).invoke(clazz, (Object[])null) : null;
 			} catch (Exception e) {
-				printDebug(e.getMessage());
-				
+				printDebugStackTrace(e);
+
 				return null;
 			}
 		});
@@ -158,7 +129,7 @@ public final class UsageLogger {
 					startTime = Instant.ofEpochMilli((long)clazz.getMethod("getStartTime", (Class<?>[])null).invoke(runtime, (Object[])null));
 				}
 			} catch (Exception e) {
-				printDebug(e.getMessage());
+				printDebugStackTrace(e);
 			}
 				
 			return LocalDateTime.ofInstant(startTime, ZoneOffset.UTC); // report start time as UTC
@@ -278,9 +249,9 @@ public final class UsageLogger {
         
         JVM_START_TIME   ((sp) -> new String[] { startTime.toString() }),
         
-        HOSTNAME		 (() -> { var host = "localhost"; try { host = InetAddress.getLocalHost().getCanonicalHostName(); } catch (UnknownHostException uhe) {} return new String[] { host }; }),
+        HOSTNAME		 (() -> { var host = "localhost"; try { host = InetAddress.getLocalHost().getCanonicalHostName(); } catch (Exception e) {} return new String[] { host }; }),
 
-        IP_ADDRESS		 (() -> { var ip = "0.0.0.0";   try { ip   = InetAddress.getLocalHost().getHostAddress(); }         catch (UnknownHostException uhe) {} return new String[] { ip }; }),
+        IP_ADDRESS		 (() -> { var ip = "0.0.0.0";   try { ip   = InetAddress.getLocalHost().getHostAddress(); }         catch (Exception e) {} return new String[] { ip }; }),
         
         JVM_PID      	 ((sp) -> new String[] { Long.toString(ProcessHandle.current().pid()) } ), //runtime.getPid()
         
@@ -746,9 +717,9 @@ public final class UsageLogger {
         }
     }
 
-    private static void printDebugStackTrace(Throwable t) {
+    private static void printDebugStackTrace(Exception e) {
         if (debug) {
-            t.printStackTrace();
+            e.printStackTrace();
         }
     }
 
@@ -1012,8 +983,8 @@ public final class UsageLogger {
                 default:
                     printDebug("bad response: " + resp + " " + msg);
             }
-        } catch (IOException ioe) {
-            printDebugStackTrace(ioe);
+        } catch (Exception e) {
+            printDebugStackTrace(e);
         } finally {
             if (httpConn!= null) httpConn.disconnect();
         }
@@ -1077,12 +1048,10 @@ public final class UsageLogger {
             //final var attrs = Files.getFileAttributeView(path, PosixFileAttributeView.class);
             
             //printVerbose(attrs.readAttributes().permissions().toString());
-        } catch (Throwable t) {
+        } catch (Exception e) {
             printVerbose("UsageLogger: error in writing to file.");
-            printDebugStackTrace(t);
-        } finally {
-        	//
-        }
+            printDebugStackTrace(e);
+        } 
     }
     
     private static void logToUDS(String uds) { // UDS
@@ -1094,8 +1063,7 @@ public final class UsageLogger {
 			if (sc.finishConnect()) sc.write(ByteBuffer.wrap((uds.endsWith(".json") ? SystemProperties.formatPropertiesAsJSON(true) : buildTextLogMessage()).getBytes()));
 			
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			if (debug) e.printStackTrace();
+			printDebugStackTrace(e);
 		}
     }
     
@@ -1181,9 +1149,8 @@ public final class UsageLogger {
         				logToURL(url);
         			}
 
-        		} catch(Throwable t) {
-        			printDebug(t.getMessage());
-        			printDebugStackTrace(t);
+        		} catch(Exception e) {
+        			printDebugStackTrace(e);
         		}
         		return (Void)null;
         	});
