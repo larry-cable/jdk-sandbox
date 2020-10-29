@@ -34,22 +34,22 @@ import jdk.jfr.StackTrace;
 import jdk.jfr.Period;
 import jdk.jfr.internal.MirrorEvent;
 
-@Category("JVM Information")
+@Category({ "Usage Logginh" })
 @Description("Log JVM Usage/Invocation")
-@Enabled()
-@Label("Java Usage Logger")
+@Enabled(true)
+@Label(" Usage Logger")
 @Name("jdk.UsageLogger")
 @StackTrace(false)
 @Period("endChunk")
-@MirrorEvent(className = "jdk.internal.usagelogger.UsageLogEvent")
-public class UsageLogEvent extends AbstractJDKEvent {
-	@Label("startTime")
-	public String startTime;
+@MirrorEvent(className = "jdk.internal.event.UsageLogEvent")
+public final class UsageLogEvent extends AbstractJDKEvent {
+	@Label("JVM Start Time")
+	public String jvmStartTime;
 
-	@Label("hostname")
+	@Label("Hostname")
 	public String hostname;
 	
-	@Label("ip.address")
+	@Label("IP Address")
 	public String ipAddress;
 	
 	@Label("jvm pid")
@@ -106,7 +106,6 @@ public class UsageLogEvent extends AbstractJDKEvent {
 	@Label("user dir")
 	public String userDir;
 	
-	@Label("user home")
-	public String userHome;
-	
+	//@Label("user home")
+	//public String userHome;
 }

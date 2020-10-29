@@ -98,45 +98,45 @@ import jdk.internal.event.UsageLogEvent;
  * <p>
  */
 public final class UsageLogger {
-	public static final Object        runtime; // RuntimeMXBean... if present, otherwise null...
-	
+    public static final Object        runtime; // RuntimeMXBean... if present, otherwise null...
+    
     public static final LocalDateTime startTime;
     
     // access RuntimeMXBean via reflection in case its module is not present..
     
-	static {
-		//runtime = ManagementFactory.getRuntimeMXBean();
-		
-		runtime = AccessController.doPrivileged((PrivilegedAction<Object>)() -> {
-			try {
-				final var clazz = Class.forName("java.lang.management.ManagementFactory");
+    static {
+        //runtime = ManagementFactory.getRuntimeMXBean();
+        
+        runtime = AccessController.doPrivileged((PrivilegedAction<Object>)() -> {
+            try {
+                final var clazz = Class.forName("java.lang.management.ManagementFactory");
 
-				return (clazz != null) ? clazz.getMethod("getRuntimeMXBean", (Class<?>[])null).invoke(clazz, (Object[])null) : null;
-			} catch (Exception e) {
-				printDebugStackTrace(e);
+                return (clazz != null) ? clazz.getMethod("getRuntimeMXBean", (Class<?>[])null).invoke(clazz, (Object[])null) : null;
+            } catch (Exception e) {
+                printDebugStackTrace(e);
 
-				return null;
-			}
-		});
-		
-		startTime = AccessController.doPrivileged((PrivilegedAction<LocalDateTime>)() -> {
-		    Instant startTime = Instant.now(); // fallback if RuntimeMXBean is not available... 
-			
-			try {
-				if (runtime != null) {
-					var clazz = Class.forName("java.lang.management.RuntimeMXBean");
+                return null;
+            }
+        });
+        
+        startTime = AccessController.doPrivileged((PrivilegedAction<LocalDateTime>)() -> {
+            Instant startTime = Instant.now(); // fallback if RuntimeMXBean is not available... 
+            
+            try {
+                if (runtime != null) {
+                    var clazz = Class.forName("java.lang.management.RuntimeMXBean");
 
-					startTime = Instant.ofEpochMilli((long)clazz.getMethod("getStartTime", (Class<?>[])null).invoke(runtime, (Object[])null));
-				}
-			} catch (Exception e) {
-				printDebugStackTrace(e);
-			}
-				
-			return LocalDateTime.ofInstant(startTime, ZoneOffset.UTC); // report start time as UTC
-		});
-		
-	}
-	
+                    startTime = Instant.ofEpochMilli((long)clazz.getMethod("getStartTime", (Class<?>[])null).invoke(runtime, (Object[])null));
+                }
+            } catch (Exception e) {
+                printDebugStackTrace(e);
+            }
+                
+            return LocalDateTime.ofInstant(startTime, ZoneOffset.UTC); // report start time as UTC
+        });
+        
+    }
+    
     private static final String JDK_UL_DEFAULT_CONFIG_FILENAME   = "usagelogger.properties";
 
     private static final String JDK_UL_PROPERTY_PREFIX           =  "jdk.usagelogger.";
@@ -174,7 +174,7 @@ public final class UsageLogger {
     //private static final String USER_DIR_VAR                   = "${user.dir}";
 
     private static final String DATE_VAR                        = "${date}";
-    private static final String TIME_VAR			= "${time}";
+    private static final String TIME_VAR            = "${time}";
     
     private static final String JVM_UUID_VAR                    = "${jvm.uuid}";
     //private static final String JAVA_IO_TMPDIR_VAR            = "${java.io.tmpdir}";
@@ -189,7 +189,7 @@ public final class UsageLogger {
     
     private static final String VARIABLE_PATTERN                = "(\\$\\{[a-z\\.]+\\})"; // compile this as needed... later
     
-    private static final DateTimeFormatter TIME_FORMATTER	    = DateTimeFormatter.ofPattern("HH.mm.SS"); //can't use ':' as separator in paths (windows)
+    private static final DateTimeFormatter TIME_FORMATTER        = DateTimeFormatter.ofPattern("HH.mm.SS"); //can't use ':' as separator in paths (windows)
         
     // I hate globals like these...
     
@@ -207,24 +207,24 @@ public final class UsageLogger {
     private static final long             logFileMaxSize;    
     
     static { 
-    	usageLoggerPropertiesFile = getConfigFilePrivileged();
-    	
+        usageLoggerPropertiesFile = getConfigFilePrivileged();
+        
         usageLoggerProperties = AccessController.doPrivileged((PrivilegedAction<Properties>)() -> {
-        	final var props = new Properties();
-        	
-        	if (usageLoggerPropertiesFile != null) try 
-        	    (FileInputStream     fis = new FileInputStream(usageLoggerPropertiesFile);
-        		 BufferedInputStream bin = new BufferedInputStream(fis)) {
-        		props.load(bin); // load the properties
-        	} catch (Exception e) {
-        		// e.g. IllegalArgumentException from invalid properties
-        		// file.
-        		// We have not initialized our properties yet, we don't know
-        		// if verbose or debug are set.
-        		props.clear(); // at this point we can do nothing -w e do not have a config
-        	}
+            final var props = new Properties();
+            
+            if (usageLoggerPropertiesFile != null) try 
+                (FileInputStream     fis = new FileInputStream(usageLoggerPropertiesFile);
+                 BufferedInputStream bin = new BufferedInputStream(fis)) {
+                props.load(bin); // load the properties
+            } catch (Exception e) {
+                // e.g. IllegalArgumentException from invalid properties
+                // file.
+                // We have not initialized our properties yet, we don't know
+                // if verbose or debug are set.
+                props.clear(); // at this point we can do nothing -w e do not have a config
+            }
 
-    		return props;
+            return props;
         });
 
         verbose         = getPropertyValueBoolean(usageLoggerProperties, JDK_UL_VERBOSE, false);
@@ -249,11 +249,11 @@ public final class UsageLogger {
         
         JVM_START_TIME   ((sp) -> new String[] { startTime.toString() }),
         
-        HOSTNAME		 (() -> { var host = "localhost"; try { host = InetAddress.getLocalHost().getCanonicalHostName(); } catch (Exception e) {} return new String[] { host }; }),
+        HOSTNAME         (() -> { var host = "localhost"; try { host = InetAddress.getLocalHost().getCanonicalHostName(); } catch (Exception e) {} return new String[] { host }; }),
 
-        IP_ADDRESS		 (() -> { var ip = "0.0.0.0";   try { ip   = InetAddress.getLocalHost().getHostAddress(); }         catch (Exception e) {} return new String[] { ip }; }),
+        IP_ADDRESS         (() -> { var ip = "0.0.0.0";   try { ip   = InetAddress.getLocalHost().getHostAddress(); }         catch (Exception e) {} return new String[] { ip }; }),
         
-        JVM_PID      	 ((sp) -> new String[] { Long.toString(ProcessHandle.current().pid()) } ), //runtime.getPid()
+        JVM_PID           ((sp) -> new String[] { Long.toString(ProcessHandle.current().pid()) } ), //runtime.getPid()
         
         JVM_UUID         ((sp) -> new String[] { getJvmUuid().toString() } ),
         
@@ -319,7 +319,7 @@ public final class UsageLogger {
         }
         
         private SystemProperties(PrivilegedAction<String[]> action) {
-        	this.values = (sp) -> { return AccessController.doPrivileged(action); };
+            this.values = (sp) -> { return AccessController.doPrivileged(action); };
         }
         
         private SystemProperties() {
@@ -447,14 +447,14 @@ public final class UsageLogger {
             var nValues = values.length;
             
             if (asCloudEvent) {
-            	json.append("{ specversion : \"1.0\",");
-            	json.append(" type : \""            + UsageLogger.class.getCanonicalName()       + "\",");
-            	json.append(" source : \"urn:uuid:" + SystemProperties.JVM_UUID.getValue()       + "\",");
-            	json.append(" id : \""              + SystemProperties.JVM_PID.getValue()        + "\",");
-            	json.append(" time : \""            + SystemProperties.JVM_START_TIME.getValue() + "\",");
-            	
-            	json.append(" datacontenttype : \"application/json\",");
-            	
+                json.append("{ specversion : \"1.0\",");
+                json.append(" type : \""            + UsageLogger.class.getCanonicalName()       + "\",");
+                json.append(" source : \"urn:uuid:" + SystemProperties.JVM_UUID.getValue()       + "\",");
+                json.append(" id : \""              + SystemProperties.JVM_PID.getValue()        + "\",");
+                json.append(" time : \""            + SystemProperties.JVM_START_TIME.getValue() + "\",");
+                
+                json.append(" datacontenttype : \"application/json\",");
+                
                 json.append(" data : ");
             }
             
@@ -469,7 +469,7 @@ public final class UsageLogger {
             json.append(" }");
             
             if (asCloudEvent) {
-            	json.append("}");
+                json.append("}");
             }
             
             return json.toString();
@@ -512,25 +512,25 @@ public final class UsageLogger {
         return AccessController.doPrivileged((PrivilegedAction<File>)() -> {
             File confFile = null;
             
-        	final String[] paths = {
-        			System.getProperty(JDK_UL_PROPERTY_CONFIG_FILE_PATH),
-        			System.getenv(JDK_UL_PROPERTY_CONFIG_FILE_PATH.toUpperCase().replace('.', '_')), // NEW: try env var...
-        			System.getProperty("java.home") + File.separator + "conf" + File.separator + "management" + File.separator + JDK_UL_DEFAULT_CONFIG_FILENAME,
-        			getOSSpecificConfigFilePath()
-        	};
-        	
-        	for (final String path : paths) {
-        		if (path != null) {
-        			confFile = new File(path);
+            final String[] paths = {
+                    System.getProperty(JDK_UL_PROPERTY_CONFIG_FILE_PATH),
+                    System.getenv(JDK_UL_PROPERTY_CONFIG_FILE_PATH.toUpperCase().replace('.', '_')), // NEW: try env var...
+                    System.getProperty("java.home") + File.separator + "conf" + File.separator + "management" + File.separator + JDK_UL_DEFAULT_CONFIG_FILENAME,
+                    getOSSpecificConfigFilePath()
+            };
+            
+            for (final String path : paths) {
+                if (path != null) {
+                    confFile = new File(path);
 
-        			if (confFile != null && confFile.exists() && confFile.canRead())
-        				break;
-        			else 
-        				confFile = null;
-        		}
-        	}
+                    if (confFile != null && confFile.exists() && confFile.canRead())
+                        break;
+                    else 
+                        confFile = null;
+                }
+            }
 
-        	return confFile;
+            return confFile;
         });
     }
 
@@ -564,21 +564,21 @@ public final class UsageLogger {
             return null;
         } else {
             // separate path from file...
-        	
+            
             final var idx = path.lastIndexOf(File.separator) + 1;
-        	
+            
             var fileName = path.substring(idx); // extract file...
-        	
+            
             path = path.substring(0, idx); // truncate path...
-        	
-	    if (path.startsWith(USER_HOME_VAR)) {
-		path.replace(USER_HOME_VAR, SystemProperties.USER_HOME.getValue());
-	    }
+            
+        if (path.startsWith(USER_HOME_VAR)) {
+        path.replace(USER_HOME_VAR, SystemProperties.USER_HOME.getValue());
+        }
 
             final var p = Pattern.compile(VARIABLE_PATTERN);
                         
             path = p.matcher(path).replaceAll((mr) -> { 
-            	final var v = mr.group();
+                final var v = mr.group();
                 
                 String ret = null;
                 
@@ -648,14 +648,14 @@ public final class UsageLogger {
                     return null;
                 }
             } else {
-            	final File parent = file.getParentFile();
-            	final var  pp     = parent.getAbsolutePath();
-            	
-            	if (!parent.exists()) {
-            		printDebug("parent path does not exist: " + pp);
-            		return null;
-            	}
-            	if (!parent.canWrite()) {
+                final File parent = file.getParentFile();
+                final var  pp     = parent.getAbsolutePath();
+                
+                if (!parent.exists()) {
+                    printDebug("parent path does not exist: " + pp);
+                    return null;
+                }
+                if (!parent.canWrite()) {
                     printDebug("parent directory not writeable: " + pp);
                     return null;
                 } 
@@ -724,21 +724,21 @@ public final class UsageLogger {
     }
 
     @SuppressWarnings("unchecked")
-	private static  String[] getInputArguments() {
-    	return AccessController.doPrivileged((PrivilegedAction<String[]>)(() -> { 
-    		if (runtime != null) try {
-				return ((List<String>)(runtime.getClass().getMethod("getInputArguments", (Class<?>[]) null).invoke(runtime, (Object[]) null))).toArray(new String[] {});
-    		} catch (Exception e) {
-    		    // ignore... for now.
-    		}
-    		return new String[] { null };
-    	}));
-    	
+    private static  String[] getInputArguments() {
+        return AccessController.doPrivileged((PrivilegedAction<String[]>)(() -> { 
+            if (runtime != null) try {
+                return ((List<String>)(runtime.getClass().getMethod("getInputArguments", (Class<?>[]) null).invoke(runtime, (Object[]) null))).toArray(new String[] {});
+            } catch (Exception e) {
+                // ignore... for now.
+            }
+            return new String[] { null };
+        }));
+        
 //        return AccessController.doPrivileged(() -> {
 //                //return ManagementFactory.getRuntimeMXBean().getInputArguments().toArray(new String[] {}); // TODO - replace this!!!!! 
 //                //return jdk.internal.misc.VM.getRuntimeArguments(); // TODO see if this works from within java.base!!!! // TODO
-//        	
-//        	    return new String[] { null };
+//            
+//                return new String[] { null };
 //            }
 //        );
     }
@@ -770,7 +770,7 @@ public final class UsageLogger {
         for (SystemProperties sp : SystemProperties.values()) {
             switch (sp) {
                 case ADDITIONAL_PROPERTIES: // special processing for "additional properties" 
-                	// Note: "elvis" operator is intended to deal with the case when there are or are not any "additional properties" specified ...
+                    // Note: "elvis" operator is intended to deal with the case when there are or are not any "additional properties" specified ...
                     appendWithQuotes(m, sp.FormatPropertyValues((sb, v) -> { return addQuotesFor(sb, (v != null ? v + "=" + getPropertyPrivileged(v) : "null"), " ", innerQuote);}, space).toString());
                 break;
 
@@ -837,40 +837,40 @@ public final class UsageLogger {
 
             lue.begin();
 
-            lue.startTime   = SystemProperties.JVM_START_TIME.getValue();
-            lue.hostname    = SystemProperties.HOSTNAME.getValue();
-            lue.ipAddress   = SystemProperties.IP_ADDRESS.getValue();
+            lue.jvmStartTime = SystemProperties.JVM_START_TIME.getValue();
+            lue.hostname     = SystemProperties.HOSTNAME.getValue();
+            lue.ipAddress    = SystemProperties.IP_ADDRESS.getValue();
 
-            lue.pid         = SystemProperties.JVM_PID.getValue();
-            lue.uuid        = SystemProperties.JVM_UUID.getValue();
+            lue.pid          = SystemProperties.JVM_PID.getValue();
+            lue.uuid         = SystemProperties.JVM_UUID.getValue();
 
-            lue.javaHome    = SystemProperties.JAVA_HOME.getValue();
-            lue.javaVersion = SystemProperties.JAVA_VERSION.getValue();
-            lue.javaVendor  = SystemProperties.JAVA_VENDOR.getValue();
-            lue.jvmVersion  = SystemProperties.JAVA_VM_VERSION.getValue();
-            lue.jvmVendor   = SystemProperties.JAVA_VM_VENDOR.getValue();
+            lue.javaHome     = SystemProperties.JAVA_HOME.getValue();
+            lue.javaVersion  = SystemProperties.JAVA_VERSION.getValue();
+            lue.javaVendor   = SystemProperties.JAVA_VENDOR.getValue();
+            lue.jvmVersion   = SystemProperties.JAVA_VM_VERSION.getValue();
+            lue.jvmVendor    = SystemProperties.JAVA_VM_VENDOR.getValue();
 
-            lue.javaHome    = SystemProperties.JAVA_HOME.getValue();
+            lue.javaHome     = SystemProperties.JAVA_HOME.getValue();
 
             final BiFunction<StringBuilder, String, StringBuilder> appendWithQuotes = (sb, v) -> appendWithQuotes(sb, v);
             final Function<StringBuilder, StringBuilder>           separator        = (sb)    -> sb.append(UsageLogger.separator);
 
-            lue.javaArgs    = SystemProperties.JAVA_ARGUMENTS.FormatPropertyValues(appendWithQuotes, separator).toString();
+            lue.javaArgs     = SystemProperties.JAVA_ARGUMENTS.FormatPropertyValues(appendWithQuotes, separator).toString();
 
-            lue.vmArgs      = SystemProperties.JVM_ARGS.FormatPropertyValues(appendWithQuotes, separator).toString();
+            lue.vmArgs       = SystemProperties.JVM_ARGS.FormatPropertyValues(appendWithQuotes, separator).toString();
 
-            lue.osName      = SystemProperties.OS_NAME.getValue();
-            lue.osVersion   = SystemProperties.OS_VERSION.getValue();
-            lue.osArch      = SystemProperties.OS_VERSION.getValue();
+            lue.osName       = SystemProperties.OS_NAME.getValue();
+            lue.osVersion    = SystemProperties.OS_VERSION.getValue();
+            lue.osArch       = SystemProperties.OS_VERSION.getValue();
 
-            lue.classpath   = SystemProperties.JAVA_CLASS_PATH.getValue();
+            lue.classpath    = SystemProperties.JAVA_CLASS_PATH.getValue();
 
             lue.modulePath      = SystemProperties.JDK_MODULE_PATH.getValue();
             lue.mainModule      = SystemProperties.JDK_MODULE_MAIN.getValue();
             lue.moduleMainClass = SystemProperties.JDK_MODULE_MAIN_CLASS.getValue();
 
-            lue.userName    = SystemProperties.USER_NAME.getValue();
-            lue.userDir     = SystemProperties.USER_DIR.getValue();
+            lue.userName     = SystemProperties.USER_NAME.getValue();
+            lue.userDir      = SystemProperties.USER_DIR.getValue();
             //lue.userHome    = SystemProperties.USER_HOME.getValue();
 
             lue.commit();
@@ -991,36 +991,36 @@ public final class UsageLogger {
     }
     
     private static FileChannel getLogfile(final Path path, final boolean shared) throws IOException { // called from doPrivileged blk
-    	FileChannel fc = null;
+        FileChannel fc = null;
 
-    	/*
-    	 * all of the following is intended to 'force' the creation of a "share-able" log file should the file not exist... or have the wrong perms
-    	 */
-    	
-    	final var perms   = PosixFilePermissions.fromString(shared ? "rw-rw-rw-" : "rw-r--r--"); // needed to share a log file across JVM users...
-    	final var options = Set.of(StandardOpenOption.WRITE, StandardOpenOption.APPEND, StandardOpenOption.CREATE);
-		
-    	try { // 1st try to optimistically open/create the log file for write append...
-    		fc = FileChannel.open(path, options, PosixFilePermissions.asFileAttribute(perms));	
-    	} catch (IllegalArgumentException | UnsupportedOperationException e) {
-    		// ok so we failed to open it lets attempt to create it... w/o posix attrs
-    		
-    		fc = FileChannel.open(path, options);
-    	}
-    	
-    	// lets check the permissions - if we have Posix fs... its racy but only results in spurious perms writes worst case.
-		
-		if (fc != null && Files.getFileStore(path).supportsFileAttributeView(PosixFileAttributeView.class) ) {
-			final var view  = Files.getFileAttributeView(path, PosixFileAttributeView.class, new LinkOption[] { });
-			final var attrs = view.readAttributes();
-			
-			if (!attrs.permissions().equals(perms)) // if the file perms are "wrong" attempt to set them up properly - logs need shared r/w
-				view.setPermissions(perms);
-		} else {
-			printDebug("unable to open/create file, or no ability to set access permissions");
-		}
-		
-    	return fc;
+        /*
+         * all of the following is intended to 'force' the creation of a "share-able" log file should the file not exist... or have the wrong perms
+         */
+        
+        final var perms   = PosixFilePermissions.fromString(shared ? "rw-rw-rw-" : "rw-r--r--"); // needed to share a log file across JVM users...
+        final var options = Set.of(StandardOpenOption.WRITE, StandardOpenOption.APPEND, StandardOpenOption.CREATE);
+        
+        try { // 1st try to optimistically open/create the log file for write append...
+            fc = FileChannel.open(path, options, PosixFilePermissions.asFileAttribute(perms));    
+        } catch (IllegalArgumentException | UnsupportedOperationException e) {
+            // ok so we failed to open it lets attempt to create it... w/o posix attrs
+            
+            fc = FileChannel.open(path, options);
+        }
+        
+        // lets check the permissions - if we have Posix fs... its racy but only results in spurious perms writes worst case.
+        
+        if (fc != null && Files.getFileStore(path).supportsFileAttributeView(PosixFileAttributeView.class) ) {
+            final var view  = Files.getFileAttributeView(path, PosixFileAttributeView.class, new LinkOption[] { });
+            final var attrs = view.readAttributes();
+            
+            if (!attrs.permissions().equals(perms)) // if the file perms are "wrong" attempt to set them up properly - logs need shared r/w
+                view.setPermissions(perms);
+        } else {
+            printDebug("unable to open/create file, or no ability to set access permissions");
+        }
+        
+        return fc;
     }
 
     private static void logToFile(File usageLoggerFile) {  // called from doPrivileged(...) blk
@@ -1055,51 +1055,51 @@ public final class UsageLogger {
     }
     
     private static void logToUDS(String uds) { // UDS
-    	try (final var sc = SocketChannel.open(StandardProtocolFamily.UNIX)) {
-			final var saddr = UnixDomainSocketAddress.of(uds);
-			
-			sc.connect(saddr);
-			
-			if (sc.finishConnect()) sc.write(ByteBuffer.wrap((uds.endsWith(".json") ? SystemProperties.formatPropertiesAsJSON(true) : buildTextLogMessage()).getBytes()));
-			
-		} catch (Exception e) {
-			printDebugStackTrace(e);
-		}
+        try (final var sc = SocketChannel.open(StandardProtocolFamily.UNIX)) {
+            final var saddr = UnixDomainSocketAddress.of(uds);
+            
+            sc.connect(saddr);
+            
+            if (sc.finishConnect()) sc.write(ByteBuffer.wrap((uds.endsWith(".json") ? SystemProperties.formatPropertiesAsJSON(true) : buildTextLogMessage()).getBytes()));
+            
+        } catch (Exception e) {
+            printDebugStackTrace(e);
+        }
     }
     
     /*
      * generate a name (type 3) UUID for this JVM invocation using some of the System property values that uniquely identify it...
      */
     public final static UUID getJvmUuid() { 
-    	final var hash = new StringBuilder();
-    	
-    	final var sysProps = new SystemProperties[] {
-    			SystemProperties.JVM_START_TIME,
-    			SystemProperties.HOSTNAME,
-    			SystemProperties.IP_ADDRESS,
-    			SystemProperties.JVM_PID,
-    			SystemProperties.JAVA_VENDOR,
-    			SystemProperties.JAVA_VERSION,
-    			SystemProperties.JAVA_ARGUMENTS,
-    			SystemProperties.JAVA_VM_VERSION,
-    			SystemProperties.JAVA_ARGUMENTS,
-    			SystemProperties.JVM_ARGS,
-    			SystemProperties.JAVA_CLASS_PATH,        // maybe null
-    			SystemProperties.JDK_MODULE_PATH,        // ditto
-    			SystemProperties.JDK_MODULE_UPGRADE_PATH,// ditto
-    			SystemProperties.JDK_MODULE_MAIN,        // ditto
-    			SystemProperties.JDK_MODULE_MAIN_CLASS,  // ditto
-    			SystemProperties.USER_NAME,
-    			SystemProperties.USER_DIR
-    	};
+        final var hash = new StringBuilder();
+        
+        final var sysProps = new SystemProperties[] {
+                SystemProperties.JVM_START_TIME,
+                SystemProperties.HOSTNAME,
+                SystemProperties.IP_ADDRESS,
+                SystemProperties.JVM_PID,
+                SystemProperties.JAVA_VENDOR,
+                SystemProperties.JAVA_VERSION,
+                SystemProperties.JAVA_ARGUMENTS,
+                SystemProperties.JAVA_VM_VERSION,
+                SystemProperties.JAVA_ARGUMENTS,
+                SystemProperties.JVM_ARGS,
+                SystemProperties.JAVA_CLASS_PATH,        // maybe null
+                SystemProperties.JDK_MODULE_PATH,        // ditto
+                SystemProperties.JDK_MODULE_UPGRADE_PATH,// ditto
+                SystemProperties.JDK_MODULE_MAIN,        // ditto
+                SystemProperties.JDK_MODULE_MAIN_CLASS,  // ditto
+                SystemProperties.USER_NAME,
+                SystemProperties.USER_DIR
+        };
 
-		for (SystemProperties sp : sysProps) {
-    		final var v = sp.getValue();
-    		
-    		if (v != null) hash.append(v);
-    	}
-		
-    	return UUID.nameUUIDFromBytes(hash.toString().getBytes()); // nameUUIDFormBytes calculates MD5 hash over string...
+        for (SystemProperties sp : sysProps) {
+            final var v = sp.getValue();
+            
+            if (v != null) hash.append(v);
+        }
+        
+        return UUID.nameUUIDFromBytes(hash.toString().getBytes()); // nameUUIDFormBytes calculates MD5 hash over string...
     };
 
     /**
@@ -1117,79 +1117,78 @@ public final class UsageLogger {
         printDebug("UsageLogger.run");
         
         if (!usageLoggerProperties.isEmpty()) { // iff not empty then we successfully loaded the config properties...
-        	final var runMode = RunMode.valueOf(usageLoggerProperties.getProperty(JDK_UL_PROPERTY_RUN_MODE, RunMode.DAEMON.name()).toUpperCase());
+            final var runMode = RunMode.valueOf(usageLoggerProperties.getProperty(JDK_UL_PROPERTY_RUN_MODE, RunMode.DAEMON.name()).toUpperCase());
             
-        	// who doesn't love nested lambda's?
-        	
-        	final Runnable logger = () -> AccessController.doPrivileged((PrivilegedAction<Void>)() -> {
-        		try {
-        			final var uds = usageLoggerProperties.getProperty(JDK_UL_LOGTOUDS, null); // UDS
+            // who doesn't love nested lambda's?
+            
+            final Runnable logger = () -> AccessController.doPrivileged((PrivilegedAction<Void>)() -> {
+                try {
+                    final var uds = usageLoggerProperties.getProperty(JDK_UL_LOGTOUDS, null); // UDS
 
-        			if (uds != null) {
-        				logToUDS(uds);
-        			}
+                    if (uds != null) {
+                        logToUDS(uds);
+                    }
 
-        			// process logging to file...
+                    // process logging to file...
 
-        			final var usageLoggerFile = processFilename(usageLoggerProperties.getProperty(JDK_UL_LOGTOFILE, null));
+                    final var usageLoggerFile = processFilename(usageLoggerProperties.getProperty(JDK_UL_LOGTOFILE, null));
 
-        			if (usageLoggerFile != null) {
-        				if (logFileMaxSize >= 0 && usageLoggerFile.length() >= logFileMaxSize) {
-        					printVerbose("UsageLogger: log file size exceeds maximum.");
-        				} else
-        					logToFile(usageLoggerFile);
-        			} else 
-        				printDebug("invalid log file?");
+                    if (usageLoggerFile != null) {
+                        if (logFileMaxSize >= 0 && usageLoggerFile.length() >= logFileMaxSize) {
+                            printVerbose("UsageLogger: log file size exceeds maximum.");
+                        } else
+                            logToFile(usageLoggerFile);
+                    }
 
-        			// now process logToURL...
+                    // now process logToURL...
 
-        			final var url = usageLoggerProperties.getProperty(JDK_UL_LOGTOURL, null);
+                    final var url = usageLoggerProperties.getProperty(JDK_UL_LOGTOURL, null);
 
-        			if (url != null) {
-        				logToURL(url);
-        			}
+                    if (url != null) {
+                        logToURL(url);
+                    }
 
-        		} catch(Exception e) {
-        			printDebugStackTrace(e);
-        		}
-        		return (Void)null;
-        	});
-        	
-        	if (runMode != RunMode.SYNCHRONOUS) {
+                } catch(Exception e) {
+                    printDebugStackTrace(e);
+                }
+                return (Void)null;
+            });
+            
+            if (runMode != RunMode.SYNCHRONOUS) {
 
-        		// Ensure we are in the root thread group: needs to be
-        		// verified that this is still required.
+                // Ensure we are in the root thread group: needs to be
+                // verified that this is still required.
 
-        		ThreadGroup tg = Thread.currentThread().getThreadGroup();
+                ThreadGroup tg = Thread.currentThread().getThreadGroup();
 
-        		while (tg.getParent() != null) {
-        			tg = tg.getParent();
-        		}
+                while (tg.getParent() != null) {
+                    tg = tg.getParent();
+                }
 
-        		final var thread = new Thread(tg, logger); // "root" process group... 
-        		
-        		if (runMode == RunMode.DAEMON) {
-        			printVerbose("UsageLogger: running asynchronous daemon.");
+                final var thread = new Thread(tg, logger); // "root" process group... 
+                
+                if (runMode == RunMode.DAEMON) {
+                    printVerbose("UsageLogger: running asynchronous daemon.");
 
-        			printDebug("daemon");
+                    printDebug("daemon");
 
-        			thread.setDaemon(true);
-        			
-        			thread.setName("UsageLogger-Daemon");
-        		} else { // RunMode.ASYNCHRONOUS
-        			printVerbose("UsageLogger: running asynchronous.");
+                    thread.setDaemon(true);
+                    
+                    thread.setName("UsageLogger-Daemon");
+                } else { // RunMode.ASYNCHRONOUS
+                    printVerbose("UsageLogger: running asynchronous.");
 
-        			printDebug("asynchronous");
-        			
-        			thread.setName("UsageLogger");
-        		}
-        		
-        		thread.start();
-        	} else {
-        		printVerbose("UsageLogger: running synchronous.");
+                    printDebug("asynchronous");
+                    
+                    thread.setName("UsageLogger");
+                }
+                
+                thread.start();
+            } else {
+                printVerbose("UsageLogger: running synchronous.");
 
-        		logger.run(); // simply run the logger in this thread...
-        	}
+                logger.run(); // simply run the logger in this thread...
+            }
         }
     }
 }

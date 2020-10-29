@@ -33,9 +33,9 @@ package jdk.internal.event;
 //@StackTrace(false)
 //@Period("endChunk")
 //@MirrorEvent(className = "jdk.internal.event.UsageLogEvent")
-public class UsageLogEvent extends Event {
-	//@Label("timestamp")
-	public String startTime;
+public final class UsageLogEvent extends Event {
+	//@Label("JVM Start Time")
+	public String jvmStartTime;
 
 	//@Label("hostname")
 	public String hostname;
@@ -98,5 +98,5 @@ public class UsageLogEvent extends Event {
 	public String userDir;
 	
 	//@Label("user home")
-	public String userHome;
+	//public String userHome;
 }

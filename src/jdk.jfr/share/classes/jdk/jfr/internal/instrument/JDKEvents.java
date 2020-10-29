@@ -102,8 +102,9 @@ public final class JDKEvents {
 
     private static final Class<?>[] targetClasses = new Class<?>[instrumentationClasses.length];
     private static final JVM jvm = JVM.getJVM();
-    private static final Runnable emitExceptionStatistics = JDKEvents::emitExceptionStatistics;
+    private static final Runnable emitExceptionStatistics    = JDKEvents::emitExceptionStatistics;
     private static final Runnable emitDirectBufferStatistics = JDKEvents::emitDirectBufferStatistics;
+    private static final Runnable emitUsageLogEvent          = jdk.internal.usagelogger.UsageLogger.emitUsageLogEvent;
     private static boolean initializationTriggered;
 
     @SuppressWarnings("unchecked")
@@ -120,7 +121,7 @@ public final class JDKEvents {
                 RequestEngine.addTrustedJDKHook(ExceptionStatisticsEvent.class, emitExceptionStatistics);
                 RequestEngine.addTrustedJDKHook(DirectBufferStatisticsEvent.class, emitDirectBufferStatistics);
 
-                RequestEngine.addTrustedJDKHook(UsageLogEvent.class, jdk.internal.usagelogger.UsageLogger.emitUsageLogEvent);
+                RequestEngine.addTrustedJDKHook(UsageLogEvent.class, emitUsageLogEvent);
             }
         } catch (Exception e) {
             Logger.log(LogTag.JFR_SYSTEM, LogLevel.WARN, "Could not initialize JDK events. " + e.getMessage());
