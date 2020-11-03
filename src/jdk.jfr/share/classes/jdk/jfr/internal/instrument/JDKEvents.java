@@ -60,7 +60,6 @@ public final class JDKEvents {
     private static final Class<?>[] mirrorEventClasses = {
         SecurityPropertyModificationEvent.class,
         TLSHandshakeEvent.class,
-        UsageLogEvent.class,
         X509CertificateEvent.class,
         X509ValidationEvent.class,
         ProcessStartEvent.class
@@ -74,6 +73,7 @@ public final class JDKEvents {
         SocketWriteEvent.class,
         UnixSocketReadEvent.class,
         UnixSocketWriteEvent.class,
+        UsageLogEvent.class,
         ExceptionThrownEvent.class,
         ExceptionStatisticsEvent.class,
         ErrorThrownEvent.class,
@@ -81,7 +81,6 @@ public final class JDKEvents {
         ActiveRecordingEvent.class,
         jdk.internal.event.SecurityPropertyModificationEvent.class,
         jdk.internal.event.TLSHandshakeEvent.class,
-        jdk.internal.event.UsageLogEvent.class,
         jdk.internal.event.X509CertificateEvent.class,
         jdk.internal.event.X509ValidationEvent.class,
         jdk.internal.event.ProcessStartEvent.class,
@@ -104,7 +103,7 @@ public final class JDKEvents {
     private static final JVM jvm = JVM.getJVM();
     private static final Runnable emitExceptionStatistics    = JDKEvents::emitExceptionStatistics;
     private static final Runnable emitDirectBufferStatistics = JDKEvents::emitDirectBufferStatistics;
-    private static final Runnable emitUsageLogEvent          = jdk.internal.usagelogger.UsageLogger.emitUsageLogEvent;
+    private static final Runnable emitUsageLogEvent          = UsageLogEvent::emitUsageLogEvent;
     private static boolean initializationTriggered;
 
     @SuppressWarnings("unchecked")
@@ -181,6 +180,7 @@ public final class JDKEvents {
     public static void remove() {
         RequestEngine.removeHook(JDKEvents::emitExceptionStatistics);
         RequestEngine.removeHook(emitDirectBufferStatistics);
+        RequestEngine.removeHook(emitUsageLogEvent);
     }
 
     private static void emitDirectBufferStatistics() {

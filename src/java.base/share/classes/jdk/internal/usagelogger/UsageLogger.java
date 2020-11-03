@@ -173,11 +173,11 @@ public final class UsageLogger {
 
     //private static final String USER_DIR_VAR                   = "${user.dir}";
 
-    private static final String DATE_VAR                        = "${date}";
-    private static final String TIME_VAR            = "${time}";
+    private static final String DATE_VAR                         = "${date}";
+    private static final String TIME_VAR                         = "${time}";
     
     private static final String JVM_UUID_VAR                    = "${jvm.uuid}";
-    //private static final String JAVA_IO_TMPDIR_VAR            = "${java.io.tmpdir}";
+    private static final String JAVA_IO_TMPDIR_VAR              = "${java.io.tmpdir}";
     
     private static final String HOSTNAME_VAR                    = "${hostname}";
     private static final String IP_ADDRESS_VAR                  = "${ip.address}";
@@ -245,15 +245,15 @@ public final class UsageLogger {
      *
      */
     
-    private static enum SystemProperties {
+    public static enum SystemProperties {
         
-        JVM_START_TIME   ((sp) -> new String[] { startTime.toString() }),
-        
-        HOSTNAME         (() -> { var host = "localhost"; try { host = InetAddress.getLocalHost().getCanonicalHostName(); } catch (Exception e) {} return new String[] { host }; }),
+        JVM_START_TIME   ((sp) ->  new String[] { startTime.toString() }),
 
-        IP_ADDRESS         (() -> { var ip = "0.0.0.0";   try { ip   = InetAddress.getLocalHost().getHostAddress(); }         catch (Exception e) {} return new String[] { ip }; }),
+        HOSTNAME         (() -> { var host = "localhost"; try { host = InetAddress.getLocalHost().getCanonicalHostName(); } catch (UnknownHostException uhe) {} return new String[] { host }; }),
+
+        IP_ADDRESS       (() -> { var ip = "0.0.0.0";   try { ip   = InetAddress.getLocalHost().getHostAddress(); }         catch (UnknownHostException uhe) {} return new String[] { ip }; }),
         
-        JVM_PID           ((sp) -> new String[] { Long.toString(ProcessHandle.current().pid()) } ), //runtime.getPid()
+        JVM_PID          ((sp) -> new String[] { Long.toString(ProcessHandle.current().pid()) } ), //runtime.getPid()
         
         JVM_UUID         ((sp) -> new String[] { getJvmUuid().toString() } ),
         
@@ -261,7 +261,7 @@ public final class UsageLogger {
         USER_DIR,
         USER_HOME,
 
-        JAVA_ARGUMENTS   ((sp) -> new String[] { getPropertyPrivileged("sun.java.command") } ), // injected in JRE from libjli apparently!
+        JAVA_ARGUMENTS   ((sp) -> new String[] { getPropertyPrivileged("sun.java.command")  }), // injected in JRE from libjli apparently!
         
         JVM_ARGS          ((sp) -> getInputArguments()),
         
@@ -304,11 +304,13 @@ public final class UsageLogger {
         OS_VERSION,
         OS_ARCH,
         
-        //JAVA_IO_TMPDIR,
+        JAVA_IO_TMPDIR,
+
+	JDK_NET_UNIXDOMAIN_TMPDIR,
         
-        JDK_JFR_REPOSITORY,
+        //JDK_JFR_REPOSITORY,
         
-        //JDK_USAGELOGGER_CONFIG_FILE ((e) -> new String[] { usageLoggerPropertiesFile.getAbsolutePath() } ),
+        //JDK_USAGELOGGER_CONFIG_FILE ((e) -> usageLoggerPropertiesFile.getAbsolutePath()),
         
         ADDITIONAL_PROPERTIES       ((e) -> getAdditionalProperties(usageLoggerProperties)); // NOTE: this depends upon the usagelogger.properties being loaded...
 
@@ -325,7 +327,7 @@ public final class UsageLogger {
         private SystemProperties() {
             this((sp) -> new String[] { getPropertyPrivileged(sp.propertyName()) }); //default is to fetch the matching System property...
         }
-        
+
         private String propertyName() {
             return name().toLowerCase().replace('_', '.'); // morphs enum 'name' to corresponding property string name... used to access System props by name
         }
@@ -405,7 +407,7 @@ public final class UsageLogger {
                         case "true":  sb.append("true"); break;
                         case "false": sb.append("false"); break;
                         default: 
-                            sb.append("\"" + v + "\"");
+                            sb.append("\"" + v.replace("\\", "\\\\").replace("\"", "\\\"") + "\"");
                         }
                     }
 
@@ -474,12 +476,22 @@ public final class UsageLogger {
             
             return json.toString();
         }
-        
+
+        public String getValuesAsString() { // called from jdk.jfe.internal.events.UsageLogEvent...
+            final var values = this.getValues();
+        	
+            if (values == null || values.length == 0)
+        	return "null";
+            else if (values.length == 1) {
+        	return values[0] != null ? values[0] : "null";
+            } else {
+        	return this.FormatPropertyValues((sb, v) -> appendWithQuotes(sb, v), (sb) -> sb.append(UsageLogger.separator)).toString();
+            }
+        }
         
         // member(s)
 
         private final Function<SystemProperties, String[]> values;  // function to extract values ...
-        
     }
     
     private static String getPropertyPrivileged(final String property) {
@@ -514,7 +526,7 @@ public final class UsageLogger {
             
             final String[] paths = {
                     System.getProperty(JDK_UL_PROPERTY_CONFIG_FILE_PATH),
-                    System.getenv(JDK_UL_PROPERTY_CONFIG_FILE_PATH.toUpperCase().replace('.', '_')), // NEW: try env var...
+                    System.getenv(JDK_UL_PROPERTY_CONFIG_FILE_PATH), // NEW: try env var...
                     System.getProperty("java.home") + File.separator + "conf" + File.separator + "management" + File.separator + JDK_UL_DEFAULT_CONFIG_FILENAME,
                     getOSSpecificConfigFilePath()
             };
@@ -571,9 +583,11 @@ public final class UsageLogger {
             
             path = path.substring(0, idx); // truncate path...
             
-        if (path.startsWith(USER_HOME_VAR)) {
-        path.replace(USER_HOME_VAR, SystemProperties.USER_HOME.getValue());
-        }
+            if (path.startsWith(USER_HOME_VAR)) {
+                path.replace(USER_HOME_VAR, SystemProperties.USER_HOME.getValue());
+            } else if (path.startsWith(JAVA_IO_TMPDIR_VAR)) {
+                path.replace(JAVA_IO_TMPDIR_VAR, SystemProperties.JAVA_IO_TMPDIR.getValue());
+            }
 
             final var p = Pattern.compile(VARIABLE_PATTERN);
                         
@@ -828,55 +842,6 @@ public final class UsageLogger {
         return m.append(item);
     }
 
-    // registered and called by JFR itself, see jdk.jfr.internal.instrument.JDKEvents for details...
-
-    public static final Runnable emitUsageLogEvent = new Runnable() {
-        @Override
-        public void run() {
-            final var lue = new UsageLogEvent();
-
-            lue.begin();
-
-            lue.jvmStartTime = SystemProperties.JVM_START_TIME.getValue();
-            lue.hostname     = SystemProperties.HOSTNAME.getValue();
-            lue.ipAddress    = SystemProperties.IP_ADDRESS.getValue();
-
-            lue.pid          = SystemProperties.JVM_PID.getValue();
-            lue.uuid         = SystemProperties.JVM_UUID.getValue();
-
-            lue.javaHome     = SystemProperties.JAVA_HOME.getValue();
-            lue.javaVersion  = SystemProperties.JAVA_VERSION.getValue();
-            lue.javaVendor   = SystemProperties.JAVA_VENDOR.getValue();
-            lue.jvmVersion   = SystemProperties.JAVA_VM_VERSION.getValue();
-            lue.jvmVendor    = SystemProperties.JAVA_VM_VENDOR.getValue();
-
-            lue.javaHome     = SystemProperties.JAVA_HOME.getValue();
-
-            final BiFunction<StringBuilder, String, StringBuilder> appendWithQuotes = (sb, v) -> appendWithQuotes(sb, v);
-            final Function<StringBuilder, StringBuilder>           separator        = (sb)    -> sb.append(UsageLogger.separator);
-
-            lue.javaArgs     = SystemProperties.JAVA_ARGUMENTS.FormatPropertyValues(appendWithQuotes, separator).toString();
-
-            lue.vmArgs       = SystemProperties.JVM_ARGS.FormatPropertyValues(appendWithQuotes, separator).toString();
-
-            lue.osName       = SystemProperties.OS_NAME.getValue();
-            lue.osVersion    = SystemProperties.OS_VERSION.getValue();
-            lue.osArch       = SystemProperties.OS_VERSION.getValue();
-
-            lue.classpath    = SystemProperties.JAVA_CLASS_PATH.getValue();
-
-            lue.modulePath      = SystemProperties.JDK_MODULE_PATH.getValue();
-            lue.mainModule      = SystemProperties.JDK_MODULE_MAIN.getValue();
-            lue.moduleMainClass = SystemProperties.JDK_MODULE_MAIN_CLASS.getValue();
-
-            lue.userName     = SystemProperties.USER_NAME.getValue();
-            lue.userDir      = SystemProperties.USER_DIR.getValue();
-            //lue.userHome    = SystemProperties.USER_HOME.getValue();
-
-            lue.commit();
-        }
-    };
-
     private static void logToURL(String url) {
         // note we use the original HTTP APIs to avoid cross-module dependencies, which use of the new APIs would result in...
 
@@ -1056,7 +1021,7 @@ public final class UsageLogger {
     
     private static void logToUDS(String uds) { // UDS
         try (final var sc = SocketChannel.open(StandardProtocolFamily.UNIX)) {
-            final var saddr = UnixDomainSocketAddress.of(uds);
+            final var saddr = UnixDomainSocketAddress.of(uds); // we let UDSSA deal with validity etc...
             
             sc.connect(saddr);
             
