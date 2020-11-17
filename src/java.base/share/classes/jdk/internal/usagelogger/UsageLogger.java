@@ -67,8 +67,6 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
  
-import jdk.internal.event.UsageLogEvent; 
-
 /**
  * The class <code>UsageLogger</code> implements the UsageLogger
  * feature, for logging JVM invocations.
@@ -155,6 +153,8 @@ public final class UsageLogger {
     private static final String JDK_UL_DEBUG                     = JDK_UL_PROPERTY_PREFIX + "debug";
     
     private static final String JDK_UL_ADDITIONALPROPERTIES      = JDK_UL_PROPERTY_PREFIX + "additionalProperties";
+
+    private static final String JDK_UL_ENVVARS                   = JDK_UL_PROPERTY_PREFIX + "env.vars";
     
     private static final String JDK_UL_SEPARATOR                 = JDK_UL_PROPERTY_PREFIX + "separator";
     private static final String JDK_UL_QUOTE                     = JDK_UL_PROPERTY_PREFIX + "quote";
@@ -312,7 +312,9 @@ public final class UsageLogger {
         
         //JDK_USAGELOGGER_CONFIG_FILE ((e) -> usageLoggerPropertiesFile.getAbsolutePath()),
         
-        ADDITIONAL_PROPERTIES       ((e) -> getAdditionalProperties(usageLoggerProperties)); // NOTE: this depends upon the usagelogger.properties being loaded...
+        ADDITIONAL_PROPERTIES       ((e) -> getAdditionalProperties(usageLoggerProperties, JDK_UL_ADDITIONALPROPERTIES)), // NOTE: this depends upon the usagelogger.properties being loaded...
+
+        ENV_VARS                    ((e) -> getAdditionalProperties(usageLoggerProperties, JDK_UL_ENVVARS)); // NOTE: this depends upon the usagelogger.properties being loaded...
 
         private static final Pattern JSONNumber = Pattern.compile("-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?");
         
@@ -359,20 +361,22 @@ public final class UsageLogger {
             final var values = entry.getValue();
             final var sb     = new StringBuilder();
             
-            if (this == SystemProperties.ADDITIONAL_PROPERTIES) {
+            final Function<String, String>getter = (equals(ADDITIONAL_PROPERTIES) ? UsageLogger::getPropertyPrivileged : equals(ENV_VARS) ? UsageLogger::getEnvPrivileged : null);
+
+            if (getter != null) {
                 // additional props requires special formatting since the actual value of the property is a list of additional property names ...
                 // so we have to perform an additional 'fetch' of those ... 
 
-            var nValues = values != null ? values.length : 0;
+                var nValues = values != null ? values.length : 0;
                 
-            if (nValues == 0) // 
-                return formatAsJSON(sb, key, values);
+                if (nValues == 0) // 
+                    return formatAsJSON(sb, key, values);
                 
                 sb.append("\"" + key + "\" : [ "); // fmt as an array...
             
                 for (String ap : values) { // iterate over additional properties ...
                     sb.append("{ "); // of objects...
-                    formatAsJSON(sb, ap, new String[] { getPropertyPrivileged(ap, null) });
+                    formatAsJSON(sb, ap, new String[] { getter.apply(ap) });
                     sb.append(" }");
                     if (--nValues > 0) sb.append(", ");
                 }
@@ -709,10 +713,10 @@ public final class UsageLogger {
         return defaultValue;
     }
     
-    private static String[] getAdditionalProperties(Properties props) {
+    private static String[] getAdditionalProperties(Properties props, String propName) {
         // additionalProperties, if set, is a comma-separated list of properties
         // to retrieve and log.
-        String propertyValue = props.getProperty(JDK_UL_ADDITIONALPROPERTIES, "");
+        String propertyValue = props.getProperty(propName, "");
         
         return (propertyValue.isEmpty()) ? new String[0] : propertyValue.split("\\s*,\\s*"); // note split is whitespace, comma separated
     }
@@ -786,6 +790,11 @@ public final class UsageLogger {
                 case ADDITIONAL_PROPERTIES: // special processing for "additional properties" 
                     // Note: "elvis" operator is intended to deal with the case when there are or are not any "additional properties" specified ...
                     appendWithQuotes(m, sp.FormatPropertyValues((sb, v) -> { return addQuotesFor(sb, (v != null ? v + "=" + getPropertyPrivileged(v) : "null"), " ", innerQuote);}, space).toString());
+                break;
+
+                case ENV_VARS: // special processing for "additional properties" 
+                    // Note: "elvis" operator is intended to deal with the case when there are or are not any "additional properties" specified ...
+                    appendWithQuotes(m, sp.FormatPropertyValues((sb, v) -> { return addQuotesFor(sb, (v != null ? v + "=" + getEnvPrivileged(v) : "null"), " ", innerQuote);}, space).toString());
                 break;
 
                 case JVM_ARGS:
